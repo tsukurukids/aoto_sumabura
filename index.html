@@ -1,0 +1,1801 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スマブラ風ゲーム プロトタイプ (修正版)</title>
+    <style>
+        body {
+            display: flex;
+
+
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #1a1a2e;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            color: white;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .screen {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        h1,
+        h2 {
+            color: #e0e0e0;
+            text-shadow: 2px 2px 4px #000;
+        }
+
+        /* Character & Stage Select Styles */
+        .select-container {
+            display: flex;
+            justify-content: center;
+            gap: 50px;
+            margin: 30px 0;
+        }
+
+        .player-select {
+            border: 2px solid #fff;
+            padding: 20px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            width: 300px;
+        }
+
+        .char-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .char-portrait {
+            width: 70px;
+            height: 70px;
+            border: 3px solid #555;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin: 0 auto;
+        }
+
+        .char-portrait:hover {
+            border-color: #fff;
+            transform: scale(1.1);
+        }
+
+        .char-portrait.selected {
+            border-color: #ffc107;
+            box-shadow: 0 0 15px #ffc107;
+        }
+
+        .char-portrait.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+            border-color: #f44336;
+        }
+
+        .char-description {
+            margin-top: 15px;
+            height: 40px;
+            font-size: 0.9em;
+        }
+
+        .ready-btn,
+        #start-game-btn,
+        #fight-btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 1.2em;
+            cursor: pointer;
+            border-radius: 5px;
+            border: none;
+            background-color: #e94560;
+            color: white;
+            transition: background-color 0.2s;
+        }
+
+        .ready-btn.ready {
+            background-color: #50c878;
+        }
+
+        #start-game-btn:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+
+        #stage-select-screen {
+            text-align: center;
+        }
+
+        .stage-preview-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .stage-preview {
+            width: 320px;
+            height: 200px;
+            background-color: #0f3460;
+            border: 3px solid #fff;
+            border-radius: 5px;
+            position: relative;
+        }
+
+        .stage-nav-btn {
+            font-size: 3em;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        /* Game Screen Styles */
+        canvas {
+            background-color: #0f3460;
+            border: 3px solid #e94560;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(233, 69, 96, 0.5);
+        }
+
+        .controls-container {
+            margin-top: 20px;
+            display: flex;
+            gap: 40px;
+        }
+
+        .controls {
+            padding: 15px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            text-align: left;
+        }
+
+        .controls h3 {
+            margin-top: 0;
+            text-align: center;
+        }
+
+        .controls p {
+            margin: 5px 0;
+            font-size: 1em;
+        }
+
+        #game-over-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* background-color を削除して、画面が暗くならないようにします */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            /* Ensure it's on top */
+        }
+
+        #winner-text {
+            font-size: 4.5em;
+            /* フォントサイズを大きく */
+            color: #ffc107;
+            /* 色を黄色に */
+            text-shadow: 3px 3px 5px black;
+            /* 影を付けて見やすく */
+            margin-top: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="character-select-screen" class="screen">
+        <h1>キャラクターを選択</h1>
+        <div class="select-container">
+            <div id="p1-select" class="player-select">
+                <h2>Player 1</h2>
+                <div class="char-options">
+                    <div class="char-portrait" data-color="#e94560"
+                        style="background-color: #e94560; background-image: url('キャラ選択/kyara1.png'); background-size: cover; background-position: center;">
+                    </div>
+                    <div class="char-portrait" data-color="#50c878"
+                        style="background-color: #50c878; background-image: url('キャラクター/midori.png'); background-size: cover; background-position: center;">
+                    </div>
+                    <div class="char-portrait" data-color="#3498db" style="background-color: #3498db;"></div>
+                    <div class="char-portrait" data-color="#f1c40f"
+                        style="background-color: #f1c40f; background-image: url('キャラクター/pawa.png'); background-size: cover; background-position: center;">
+                    </div>
+                    <div class="char-portrait" data-color="#9b59b6" style="background-color: #9b59b6;"></div>
+                    <div class="char-portrait" data-color="#daa520" style="background-color: #daa520;"></div>
+                    <div class="char-portrait" data-color="#E0E0E0" style="background-color: #E0E0E0;"></div>
+                    <div class="char-portrait" data-color="#FF8C00" style="background-color: #FF8C00;"></div>
+                    <div class="char-portrait" data-color="#8B4513" style="background-color: #8B4513;"></div>
+                    <div class="char-portrait" data-color="#4B0082" style="background-color: #4B0082;"></div>
+                    <div class="char-portrait" data-color="#FFC0CB" style="background-color: #FFC0CB;"></div>
+                    <div class="char-portrait" data-color="#000000"
+                        style="background-color: #000000; background-image: url('キャラクター/kuro.png'); background-size: cover; background-position: center;">
+                    </div>
+                    <div class="char-portrait" data-color="#808080" style="background-color: #808080;"></div>
+                    <div class="char-portrait" data-color="#FADADD"
+                        style="background: linear-gradient(to bottom, #FF0000 50%, #FFFFFF 50%);"></div>
+                    <div class="char-portrait" data-color="#FF9900"
+                        style="background-color: #FF9900; background-image: url('キャラクター/kyara9.png'); background-size: cover; background-position: center;">
+                    </div>
+                </div>
+                <p id="p1-char-description" class="char-description">キャラクターを選択してください</p>
+                <button id="p1-ready-btn" class="ready-btn">準備完了</button>
+            </div>
+            <div id="p2-select" class="player-select">
+                <h2>Player 2</h2>
+                <div class="char-options">
+                    <div class="char-portrait" data-color="#e94560"
+                        style="background-color: #e94560; background-image: url('キャラ選択/kyara1.png'); background-size: cover; background-position: center;">
+                    </div>
+                    <div class="char-portrait" data-color="#50c878"
+                        style="background-color: #50c878; background-image: url('キャラクター/midori.png'); background-size: cover; background-position: center;">
+                    </div>
+                    <div class="char-portrait" data-color="#3498db" style="background-color: #3498db;"></div>
+                    <div class="char-portrait" data-color="#f1c40f"
+                        style="background-color: #f1c40f; background-image: url('キャラクター/pawa.png'); background-size: cover; background-position: center;">
+                    </div>
+                    <div class="char-portrait" data-color="#9b59b6" style="background-color: #9b59b6;"></div>
+                    <div class="char-portrait" data-color="#daa520" style="background-color: #daa520;"></div>
+                    <div class="char-portrait" data-color="#E0E0E0" style="background-color: #E0E0E0;"></div>
+                    <div class="char-portrait" data-color="#FF8C00" style="background-color: #FF8C00;"></div>
+                    <div class="char-portrait" data-color="#8B4513" style="background-color: #8B4513;"></div>
+                    <div class="char-portrait" data-color="#4B0082" style="background-color: #4B0082;"></div>
+                    <div class="char-portrait" data-color="#FFC0CB" style="background-color: #FFC0CB;"></div>
+                    <div class="char-portrait" data-color="#000000"
+                        style="background-color: #000000; background-image: url('キャラクター/kuro.png'); background-size: cover; background-position: center;">
+                    </div>
+                    <div class="char-portrait" data-color="#808080" style="background-color: #808080;"></div>
+                    <div class="char-portrait" data-color="#FADADD"
+                        style="background: linear-gradient(to bottom, #FF0000 50%, #FFFFFF 50%);"></div>
+                    <div class="char-portrait" data-color="#FF9900"
+                        style="background-color: #FF9900; background-image: url('キャラクター/kyara9.png'); background-size: cover; background-position: center;">
+                    </div>
+                </div>
+                <p id="p2-char-description" class="char-description">キャラクターを選択してください</p>
+                <button id="p2-ready-btn" class="ready-btn">準備完了</button>
+            </div>
+        </div>
+        <button id="start-game-btn" disabled>ステージ選択へ</button>
+    </div>
+
+    <div id="stage-select-screen" class="screen hidden">
+        <h1>ステージを選択</h1>
+        <div class="stage-preview-container">
+            <div id="prev-stage-btn" class="stage-nav-btn">◀</div>
+            <div id="stage-preview" class="stage-preview"></div>
+            <div id="next-stage-btn" class="stage-nav-btn">▶</div>
+        </div>
+        <h2 id="stage-name"></h2>
+        <button id="fight-btn">対戦開始！</button>
+    </div>
+
+    <div id="game-screen" class="screen hidden">
+        <!-- ゲームオーバー画面用のオーバーレイをここに配置 -->
+        <div id="game-over-overlay" class="hidden">
+            <!-- 勝利者テキスト。JSによって内容が設定されます -->
+            <h2 id="winner-text"></h2>
+        </div>
+
+        <!-- ゲーム本体の要素 -->
+        <h1>スマブラ風ゲーム</h1>
+        <canvas id="gameCanvas" width="800" height="500"></canvas>
+        <div id="game-controls-container" class="controls-container"></div>
+    </div>
+
+    <script>
+        // --- Game State Management & Data ---
+        const charSelectScreen = document.getElementById('character-select-screen');
+        const stageSelectScreen = document.getElementById('stage-select-screen');
+        const gameScreen = document.getElementById('game-screen');
+        let p1Selection = null;
+        let p2Selection = null;
+        let p1Ready = false;
+        let p2Ready = false;
+        let animationFrameId = null;
+        let selectedStageIndex = 0;
+
+        const characterData = {
+            '#e94560': { name: 'レッド', description: 'スタンダードタイプ。飛び道具で牽制！', imagePath: 'キャラクター/kyara1.png' },
+            '#50c878': { name: 'グリーン', description: 'スピードタイプ。高速ダッシュで翻弄！', imagePath: 'キャラクター/midori.png' },
+            '#3498db': { name: 'ブルー', description: '衝撃波で相手を弾き飛ばし、距離を取る！', imagePath: null },
+            '#f1c40f': { name: 'イエロー', description: 'パワータイプ。空中や地上からの踏みつけが強力！', imagePath: 'キャラクター/pawa.png' },
+            '#9b59b6': { name: 'パープル', description: '攻撃範囲は広いが威力は低い。テレポートでかく乱！', imagePath: null },
+            '#daa520': { name: 'ゴールド', description: '超重量級！縦方向の必殺ワザで相手を打ち上げる！', imagePath: null },
+            '#E0E0E0': { name: 'ホワイト', description: '超軽量級。竜巻の必殺ワザで相手を巻き上げる！', imagePath: null },
+            '#FF8C00': { name: 'オレンジ', description: 'トリッキーな攻撃を持つレーザーの使い手。', imagePath: null },
+            '#8B4513': { name: 'ブラウン', description: '少し重い土使い。低い土の波で相手を押し出す。', imagePath: 'キャラクター/kyara2.png' },
+            '#4B0082': { name: 'インディゴ', description: '重力を操り、相手の動きを翻弄する。', imagePath: null },
+            '#FFC0CB': { name: 'ピンク', description: '高重量・高機動。チャージ後の全方位ショットは圧巻。', imagePath: null },
+            '#000000': { name: 'ブラック', description: 'HP制でノックバック無効。ブラックホールで相手を吸い寄せる。', imagePath: 'キャラクター/kuro.png' },
+            '#808080': { name: 'グレー', description: '体の大きさを自在に変える。', imagePath: null },
+            '#FADADD': { name: 'レッドホワイト', description: '十字架の波動を放つ。ジャンプは1回のみ。', imagePath: null },
+            '#FF9900': { name: '琥珀', description: 'エネルギーを操る。溜め攻撃で強力な一撃を放つ。', imagePath: 'キャラクター/kyara9.png' }
+        };
+
+        const stages = [
+            { name: "スタンダード", platforms: [{ x: 100, y: 350, width: 600, height: 50 }] },
+            {
+                name: "バトルフィールド", platforms: [
+                    { x: 150, y: 350, width: 500, height: 50 },
+                    { x: 200, y: 220, width: 120, height: 15 },
+                    { x: 480, y: 220, width: 120, height: 15 },
+                    { x: 340, y: 100, width: 120, height: 15 }
+                ]
+            },
+            {
+                name: "タワー", platforms: [
+                    { x: 325, y: 350, width: 150, height: 50 },
+                    { x: 300, y: 150, width: 200, height: 200 },
+                    { x: 150, y: 250, width: 100, height: 15 },
+                    { x: 550, y: 250, width: 100, height: 15 },
+                    { x: 350, y: 50, width: 100, height: 15 }
+                ]
+            },
+            {
+                name: "バレー", platforms: [
+                    { x: 0, y: 350, width: 250, height: 50 },
+                    { x: 550, y: 350, width: 250, height: 50 },
+                    { x: 200, y: 250, width: 400, height: 50 }
+                ]
+            },
+            {
+                name: "浮遊島", platforms: [
+                    { x: 100, y: 300, width: 150, height: 20 },
+                    { x: 550, y: 300, width: 150, height: 20 },
+                    { x: 325, y: 180, width: 150, height: 20 }
+                ]
+            }
+        ];
+
+        // --- UI Elements ---
+        const p1Options = document.querySelectorAll('#p1-select .char-portrait');
+        const p2Options = document.querySelectorAll('#p2-select .char-portrait');
+        const p1ReadyBtn = document.getElementById('p1-ready-btn');
+        const p2ReadyBtn = document.getElementById('p2-ready-btn');
+        const startGameBtn = document.getElementById('start-game-btn');
+        const p1Desc = document.getElementById('p1-char-description');
+        const p2Desc = document.getElementById('p2-char-description');
+        const prevStageBtn = document.getElementById('prev-stage-btn');
+        const nextStageBtn = document.getElementById('next-stage-btn');
+        const stagePreview = document.getElementById('stage-preview');
+        const stageName = document.getElementById('stage-name');
+        const fightBtn = document.getElementById('fight-btn');
+        let gameOverOverlay, winnerText; // Declare here, define in main()
+
+        // --- UI Logic ---
+        function updateCharacterAvailability() {
+            p1Options.forEach(opt => opt.classList.toggle('disabled', opt.dataset.color === p2Selection));
+            p2Options.forEach(opt => opt.classList.toggle('disabled', opt.dataset.color === p1Selection));
+        }
+
+        p1Options.forEach(p => p.addEventListener('click', () => {
+            if (p1Ready || p.classList.contains('disabled')) return;
+            p1Options.forEach(opt => opt.classList.remove('selected'));
+            p.classList.add('selected');
+            p1Selection = p.dataset.color;
+            p1Desc.textContent = characterData[p1Selection].description;
+            updateCharacterAvailability();
+        }));
+
+        p2Options.forEach(p => p.addEventListener('click', () => {
+            if (p2Ready || p.classList.contains('disabled')) return;
+            p2Options.forEach(opt => opt.classList.remove('selected'));
+            p.classList.add('selected');
+            p2Selection = p.dataset.color;
+            p2Desc.textContent = characterData[p2Selection].description;
+            updateCharacterAvailability();
+        }));
+
+        function checkReady() {
+            startGameBtn.disabled = !(p1Ready && p2Ready);
+        }
+
+        p1ReadyBtn.addEventListener('click', () => {
+            if (!p1Selection) {
+                const p1select = document.getElementById('p1-select');
+                const tempMsg = document.createElement('p');
+                tempMsg.textContent = 'キャラクターを選択してください！';
+                tempMsg.style.color = '#e94560';
+                p1select.appendChild(tempMsg);
+                setTimeout(() => tempMsg.remove(), 2000);
+                return;
+            }
+            p1Ready = !p1Ready;
+            p1ReadyBtn.classList.toggle('ready', p1Ready);
+            p1ReadyBtn.textContent = p1Ready ? '準備OK!' : '準備完了';
+            checkReady();
+        });
+
+        p2ReadyBtn.addEventListener('click', () => {
+            if (!p2Selection) {
+                const p2select = document.getElementById('p2-select');
+                const tempMsg = document.createElement('p');
+                tempMsg.textContent = 'キャラクターを選択してください！';
+                tempMsg.style.color = '#e94560';
+                p2select.appendChild(tempMsg);
+                setTimeout(() => tempMsg.remove(), 2000);
+                return;
+            }
+            p2Ready = !p2Ready;
+            p2ReadyBtn.classList.toggle('ready', p2Ready);
+            p2ReadyBtn.textContent = p2Ready ? '準備OK!' : '準備完了';
+            checkReady();
+        });
+
+        startGameBtn.addEventListener('click', () => {
+            charSelectScreen.classList.add('hidden');
+            stageSelectScreen.classList.remove('hidden');
+            renderStagePreview();
+        });
+
+        function resetToCharSelect() {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            if (keydownHandler) window.removeEventListener('keydown', keydownHandler);
+            if (keyupHandler) window.removeEventListener('keyup', keyupHandler);
+            gameScreen.classList.add('hidden');
+            if (gameOverOverlay) gameOverOverlay.classList.add('hidden');
+            charSelectScreen.classList.remove('hidden');
+
+            p1Ready = false; p2Ready = false; p1Selection = null; p2Selection = null;
+            p1ReadyBtn.classList.remove('ready'); p2ReadyBtn.classList.remove('ready');
+            p1ReadyBtn.textContent = '準備完了'; p2ReadyBtn.textContent = '準備完了';
+            p1Options.forEach(opt => opt.classList.remove('selected', 'disabled'));
+            p2Options.forEach(opt => opt.classList.remove('selected', 'disabled'));
+            p1Desc.textContent = 'キャラクターを選択してください'; p2Desc.textContent = 'キャラクターを選択してください';
+            startGameBtn.disabled = true;
+            if (winnerText) winnerText.textContent = '';
+        }
+
+        function renderStagePreview() {
+            const stage = stages[selectedStageIndex];
+            stageName.textContent = stage.name;
+            stagePreview.innerHTML = '';
+            stage.platforms.forEach(p => {
+                const pEl = document.createElement('div');
+                pEl.style.position = 'absolute';
+                pEl.style.left = `${p.x / 800 * 100}%`;
+                pEl.style.top = `${p.y / 500 * 100}%`;
+                pEl.style.width = `${p.width / 800 * 100}%`;
+                pEl.style.height = `${p.height / 500 * 100}%`;
+                pEl.style.backgroundColor = '#ddd';
+                stagePreview.appendChild(pEl);
+            });
+        }
+
+        prevStageBtn.addEventListener('click', () => {
+            selectedStageIndex = (selectedStageIndex - 1 + stages.length) % stages.length;
+            renderStagePreview();
+        });
+
+        nextStageBtn.addEventListener('click', () => {
+            selectedStageIndex = (selectedStageIndex + 1) % stages.length;
+            renderStagePreview();
+        });
+
+        fightBtn.addEventListener('click', () => {
+            stageSelectScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            main(stages[selectedStageIndex]);
+        });
+
+        // ===============================================
+        // =========== Main Game Logic ===================
+        // ===============================================
+
+        let keydownHandler;
+        let keyupHandler;
+
+        function main(stageData) {
+            // Assign game-specific elements here, when the game starts
+            gameOverOverlay = document.getElementById('game-over-overlay');
+            winnerText = document.getElementById('winner-text');
+
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            const controlsContainer = document.getElementById('game-controls-container');
+            controlsContainer.innerHTML = `
+                <div class="controls">
+                    <h3>Player 1 (${characterData[p1Selection].name})</h3>
+                    <p><strong>移動:</strong> A/D | <strong>ジャンプ:</strong> W</p>
+                    <p><strong>通常攻撃:</strong> Space</p>
+                    <p><strong>スマッシュ:</strong> S | <strong>必殺ワザ1:</strong> E | <strong>必殺ワザ2:</strong> Q</p>
+                </div>
+                <div class="controls">
+                    <h3>Player 2 (${characterData[p2Selection].name})</h3>
+                    <p><strong>移動:</strong> ←/→ | <strong>ジャンプ:</strong> ↑</p>
+                    <p><strong>通常攻撃:</strong> Enter</p>
+                    <p><strong>スマッシュ:</strong> ↓ | <strong>必殺ワザ1:</strong> 0 | <strong>必殺ワザ2:</strong> .</p>
+                </div>`;
+
+            let audioContext;
+            function playSound() { /* sound logic */ }
+            const GRAVITY = 0.6;
+            const JUMP_POWER = -15;
+            const SMASH_CHARGE_TIME = 400;
+            const SMASH_LAG_TIME = 500;
+            const NORMAL_ATTACK_LAG_TIME = 100;
+            const DI_INFLUENCE = 0.15;
+            let projectiles = [];
+            let blackHoles = [];
+            const platforms = stageData.platforms;
+            // const kyara1Image = new Image(); // Removed: Images are now loaded dynamically per character
+            // kyara1Image.src = 'キャラクター/kyara1.png'; // Removed
+
+            class Player {
+                constructor(x, y, color, name, projectiles, image = null) {
+                    this.name = name;
+                    this.x = x; this.y = y;
+                    this.width = 42.5; this.height = 42.5;
+                    this.originalWidth = this.width;
+                    this.originalHeight = this.height;
+                    this.isSizeChanging = false;
+                    this.isFloating = false;
+                    this.color = color;
+                    this.stats = this.getStatsByColor(color);
+                    this.velocityX = 0; this.velocityY = 0;
+                    this.jumpsLeft = 2; this.isOnGround = false;
+                    if (this.stats.type === 'red-white') {
+                        this.jumpsLeft = 1;
+                    }
+                    this.damage = 0;
+                    this.stocks = 3;
+                    this.isInvincible = false;
+                    this.isAttacking = false;
+                    this.hitstunFrames = 0; // 行動不能フレーム数
+                    this.isCharging = false; this.inAttackLag = false;
+                    this.isDashing = false;
+                    this.attackBox = {}; this.currentAttack = null;
+                    this.lastDirection = 1;
+                    this.attackStartTime = 0; // 攻撃アニメーションの開始時間を記録するため
+                    this.chargeStartTime = 0; // チャージ開始時間を記録
+                    this.isChargingSpecial2 = false; // 第2必殺技のチャージ中か
+                    this.isSuperArmor = false; // Super Armor flag
+                    this.projectiles = projectiles; // projectiles配列を保存
+                    this.barrierUsed = false; // バリアーが使用されたか
+                    this.hasBarrier = false; // バリアーを使用できるキャラクターか
+                    if (this.stats.type === 'blue') this.hasBarrier = true;
+                    this.image = image;
+
+                    this.isSlowed = false;
+                    this.slowedTimer = 0;
+                    this.blackHoleCooldown = false;
+
+                    if (this.stats.type === 'black') {
+                        this.hp = 120;
+                        this.damage = 0; // ブラックはdamageプロパティをHPとして使う
+                    }
+                }
+
+                startCharge(type) {
+                    if (this.isAttacking || this.hitstunFrames > 0 || this.inAttackLag) return;
+                    if (type === 'special' && this.stats.type === 'kohaku') {
+                        this.isCharging = true;
+                        this.chargeStartTime = Date.now();
+                    } else if (type === 'special2' && (this.stats.type === 'red' || this.stats.type === 'indigo' || this.stats.type === 'blue')) {
+                        if (this.isChargingSpecial2 || (this.stats.type === 'blue' && this.barrierUsed)) return;
+                        this.isChargingSpecial2 = true;
+                        this.chargeStartTime = Date.now();
+                        this.isCharging = true; // 全体のチャージ状態もtrueにする
+                    }
+                }
+
+                endCharge(type) {
+                    if (type === 'special' && this.stats.type === 'kohaku') {
+                        this.releaseKohakuChargeBeam();
+                    } else if (type === 'special2' && this.stats.type === 'red') {
+                        if (!this.isChargingSpecial2) return;
+                        this.releaseChargeBeam();
+                    } else if (type === 'special2' && this.stats.type === 'indigo') {
+                        if (!this.isChargingSpecial2) return;
+                        this.isChargingSpecial2 = false;
+                        this.inAttackLag = true;
+
+                        const pullOffset = 20; // インディゴの手前からのオフセット
+                        const opponent = players.find(p => p !== this);
+
+                        if (opponent) {
+                            const targetX = this.x + this.lastDirection * (this.width / 2 + pullOffset) - opponent.width / 2;
+                            opponent.x = targetX;
+                            opponent.velocityY = -5; // 相手を少し浮かせる
+                            opponent.hitstunFrames = 10; // 相手に短い硬直を与える
+                        }
+                        setTimeout(() => { this.inAttackLag = false; }, 300);
+                    }
+                    this.isCharging = false; // 全体のチャージ状態をリセット
+                }
+
+                releaseKohakuChargeBeam() {
+                    if (!this.isCharging) return;
+
+                    this.isCharging = false;
+                    this.inAttackLag = true;
+
+                    const chargeDuration = Date.now() - this.chargeStartTime;
+                    const maxChargeTime = 2000; // 最大チャージ時間 (ms)
+                    const minDamage = 6; const maxDamage = 25;
+                    const minKnockback = 4; const maxKnockback = 12;
+                    const minProjectileSize = 10; const maxProjectileSize = 30;
+                    const minProjectileSpeed = 7; const maxProjectileSpeed = 18;
+
+                    const chargeRatio = Math.min(chargeDuration / maxChargeTime, 1);
+                    const damage = Math.floor(minDamage + (maxDamage - minDamage) * chargeRatio);
+                    const baseKnockback = minKnockback + (maxKnockback - minKnockback) * chargeRatio;
+                    const projectileSize = minProjectileSize + (maxProjectileSize - minProjectileSize) * chargeRatio;
+                    const projectileSpeed = minProjectileSpeed + (maxProjectileSpeed - minProjectileSpeed) * chargeRatio;
+
+                    this.projectiles.push({
+                        x: this.x + (this.lastDirection > 0 ? this.width : -projectileSize),
+                        y: this.y + this.height / 2 - projectileSize / 2,
+                        velocityX: projectileSpeed * this.lastDirection,
+                        velocityY: 0,
+                        owner: this,
+                        width: projectileSize, height: projectileSize,
+                        damage: damage,
+                        baseKnockback: baseKnockback,
+                        knockbackScaling: 0.09,
+                        color: `rgba(255, 191, 0, ${0.5 + chargeRatio * 0.5})` // Amber color, opacity increases with charge
+                    });
+
+                    setTimeout(() => { this.inAttackLag = false; }, 400);
+                }
+
+                releaseChargeBeam() {
+                    if (!this.isChargingSpecial2) return;
+
+                    this.isChargingSpecial2 = false;
+                    this.isCharging = false; // 全体のチャージ状態もfalseにする
+                    this.inAttackLag = true;
+
+                    const chargeDuration = Date.now() - this.chargeStartTime;
+                    const maxChargeTime = 2000; // 最大チャージ時間 (ms)
+                    const minDamage = 5; const maxDamage = 20;
+                    const minKnockback = 3; const maxKnockback = 10;
+                    const minProjectileSize = 8; const maxProjectileSize = 24;
+                    const minProjectileSpeed = 8; const maxProjectileSpeed = 15;
+
+                    // チャージ時間に応じてダメージとノックバックを計算
+                    const chargeRatio = Math.min(chargeDuration / maxChargeTime, 1);
+                    const damage = Math.floor(minDamage + (maxDamage - minDamage) * chargeRatio);
+                    const baseKnockback = minKnockback + (maxKnockback - minKnockback) * chargeRatio;
+                    const projectileSize = minProjectileSize + (maxProjectileSize - minProjectileSize) * chargeRatio;
+                    const projectileSpeed = minProjectileSpeed + (maxProjectileSpeed - minProjectileSpeed) * chargeRatio;
+
+                    // チャージビームの飛び道具を生成
+                    this.projectiles.push({
+                        x: this.x + (this.lastDirection > 0 ? this.width : -projectileSize),
+                        y: this.y + this.height / 2 - projectileSize / 2,
+                        velocityX: projectileSpeed * this.lastDirection,
+                        velocityY: 0,
+                        owner: this,
+                        width: projectileSize, height: projectileSize,
+                        damage: damage,
+                        baseKnockback: baseKnockback,
+                        knockbackScaling: 0.08,
+                        color: `rgba(255, ${255 - Math.floor(255 * chargeRatio)}, 0, 1)` // チャージで色が変わる
+                    });
+
+                    // 硬直時間
+                    setTimeout(() => { this.inAttackLag = false; }, 300);
+                }
+
+                jump() {
+                    if (this.jumpsLeft > 0 && this.hitstunFrames <= 0 && !this.isCharging && !this.inAttackLag) {
+                        this.velocityY = JUMP_POWER; this.jumpsLeft--; this.isOnGround = false;
+                    }
+                }
+
+                getStatsByColor(color) {
+                    switch (color) {
+                        case '#50c878': return { speed: 4.0, weight: 0.95, type: 'green' };
+                        case '#3498db': return { speed: 3.5, weight: 1.08, type: 'blue' };
+                        case '#f1c40f': return { speed: 3.3, weight: 1.1, type: 'yellow' };
+                        case '#9b59b6': return { speed: 3.8, weight: 0.98, type: 'purple' };
+                        case '#daa520': return { speed: 3.0, weight: 1.5, type: 'gold' };
+                        case '#E0E0E0': return { speed: 3.9, weight: 0.85, type: 'white' };
+                        case '#FF8C00': return { speed: 3.6, weight: 1.05, type: 'orange' };
+                        case '#8B4513': return { speed: 3.4, weight: 1.15, type: 'brown' };
+                        case '#4B0082': return { speed: 3.7, weight: 0.9, type: 'indigo' }; // New character stats
+                        case '#FFC0CB': return { speed: 4.2, weight: 1.12, type: 'pink' };
+                        case '#000000': return { speed: 3.5, weight: 1.0, type: 'black' };
+                        case '#808080': return { speed: 3.5, weight: 1.0, type: 'grey' };
+                        case '#FADADD': return { speed: 3.7, weight: 1.0, type: 'red-white' };
+                        case '#FF9900': return { speed: 3.7, weight: 1.0, type: 'kohaku' };
+                        default: return { speed: 3.8, weight: 1.0, type: 'red' };
+                    }
+                }
+
+                draw() {
+                    ctx.save();
+                    if (this.isInvincible && Math.floor(Date.now() / 100) % 2 === 0) {
+                        ctx.globalAlpha = 0.5;
+                    }
+
+                    // Translate to the center of the player, then scale
+                    ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+                    if (this.lastDirection === -1) {
+                        ctx.scale(-1, 1);
+                    }
+                    // Draw player at -width/2, -height/2 relative to the new origin (center of player)
+                    const drawX = -this.width / 2;
+                    const drawY = -this.height / 2;
+
+                    if (this.stats.type === 'kohaku' && this.isCharging) {
+                        ctx.shadowBlur = 15 + Math.sin(Date.now() / 150) * 5; // Pulsating glow
+                        ctx.shadowColor = '#FF9900'; // Amber color
+                    } else {
+                        ctx.shadowBlur = 0;
+                        ctx.shadowColor = 'rgba(0,0,0,0)';
+                    }
+
+                    if (this.image && this.image.complete && this.image.naturalHeight !== 0) {
+                        ctx.drawImage(this.image, drawX, drawY, this.width, this.height);
+                    } else if (this.isCharging || this.isChargingSpecial2) {
+                        if (Math.floor(Date.now() / 100) % 2 === 0) {
+                            ctx.fillStyle = '#FFFFFF';
+                            ctx.fillRect(drawX, drawY, this.width, this.height);
+                        } else {
+                            // If flashing, and it's red-white, draw its normal red-white split.
+                            if (this.stats.type === 'red-white') {
+                                ctx.fillStyle = '#FF0000';
+                                ctx.fillRect(drawX, drawY, this.width, this.height / 2);
+                                ctx.fillStyle = '#FFFFFF';
+                                ctx.fillRect(drawX, drawY + this.height / 2, this.width, this.height / 2);
+                            } else {
+                                ctx.fillStyle = this.color; // For Kohaku, this.color will be #CD853F
+                                if (this.isDashing) ctx.globalAlpha = 0.6;
+                                ctx.fillRect(drawX, drawY, this.width, this.height);
+                            }
+                        }
+                    } else if (this.stats.type === 'red-white') {
+                        // Draw top half red
+                        ctx.fillStyle = '#FF0000';
+                        ctx.fillRect(drawX, drawY, this.width, this.height / 2);
+                        // Draw bottom half white
+                        ctx.fillStyle = '#FFFFFF';
+                        ctx.fillRect(drawX, drawY + this.height / 2, this.width, this.height / 2);
+                    } else {
+                        ctx.fillStyle = this.color; // For Kohaku, this.color will be #CD853F
+                        if (this.isDashing) ctx.globalAlpha = 0.6;
+                        ctx.fillRect(drawX, drawY, this.width, this.height);
+                    }
+                    ctx.restore(); // Restore the context for subsequent drawing (text, stocks, attack boxes)
+
+                    ctx.fillStyle = 'white'; ctx.font = '24px Arial'; ctx.textAlign = 'center';
+                    const textX = this.name === 'Player 1' ? 150 : canvas.width - 150;
+                    if (this.stats.type === 'black') {
+                        ctx.fillText(`${this.name}: ${this.hp} HP`, textX, 110);
+                    } else {
+                        ctx.fillText(`${this.name}: ${this.damage}%`, textX, 110);
+                    }
+
+                    // Draw stocks
+                    for (let i = 0; i < this.stocks; i++) {
+                        const stockX = (this.name === 'Player 1' ? 80 + i * 25 : canvas.width - 120 - i * 25);
+                        const stockY = 125;
+                        const stockSize = 20;
+                        if (this.stats.type === 'red-white') {
+                            // Draw top half red
+                            ctx.fillStyle = '#FF0000';
+                            ctx.fillRect(stockX, stockY, stockSize, stockSize / 2);
+                            // Draw bottom half white
+                            ctx.fillStyle = '#FFFFFF';
+                            ctx.fillRect(stockX, stockY + stockSize / 2, stockSize, stockSize / 2);
+                        } else {
+                            ctx.fillStyle = this.color; // For Kohaku, this.color will be #CD853F
+                            ctx.fillRect(stockX, stockY, stockSize, stockSize);
+                        }
+                    }
+
+                    // Attack box drawing logic (no longer affected by the player's flip)
+                    if (this.isAttacking && this.attackBox) {
+                        if (this.currentAttack && this.currentAttack.type === 'tornado') {
+                            // 竜巻のアニメーション描画
+                            const elapsed = Date.now() - this.attackStartTime;
+                            const angle = (elapsed / 150) * Math.PI * 2; // 150msで1回転
+                            const centerX = this.x + this.width / 2; // Use actual player x for attack box center
+                            const centerY = this.attackBox.y + this.attackBox.height / 2;
+
+                            ctx.save();
+                            ctx.fillStyle = this.attackBox.color;
+                            ctx.globalAlpha = 0.7;
+                            ctx.translate(centerX, centerY);
+
+                            // 3つの矩形を回転させて竜巻を表現
+                            for (let i = 0; i < 3; i++) {
+                                ctx.rotate(angle + (i * Math.PI * 2 / 3));
+                                const height = this.attackBox.height * (0.5 + (Math.sin(elapsed / 200 + i) * 0.1));
+                                ctx.fillRect(-this.attackBox.width / 4, -height / 2, this.attackBox.width / 2, height);
+                            }
+
+                            ctx.restore();
+                        } else {
+                            // 通常の攻撃ボックス描画
+                            ctx.fillStyle = this.attackBox.color;
+                            ctx.fillRect(this.attackBox.x, this.attackBox.y, this.attackBox.width, this.attackBox.height);
+                        }
+                    }
+                }
+
+                update() {
+                    // ヒットストップタイマーを減らす
+                    if (this.hitstunFrames > 0) {
+                        this.hitstunFrames--;
+                    }
+
+                    if (this.slowedTimer > 0) {
+                        this.slowedTimer--;
+                        if (this.slowedTimer <= 0) {
+                            this.isSlowed = false;
+                        }
+                    }
+
+                    // === 1. APPLY FORCES (Y-AXIS) ===
+                    const prevY = this.y;
+                    // Gravity is always applied. The collision check below will handle stopping it.
+                    if (!this.isFloating) {
+                        this.velocityY += GRAVITY * this.stats.weight;
+                    }
+                    this.y += this.velocityY;
+
+                    // === 2. CHECK AND RESOLVE Y-AXIS COLLISIONS ===
+                    this.isOnGround = false;
+                    for (const platform of platforms) {
+                        if (this.x + this.width > platform.x && this.x < platform.x + platform.width &&
+                            (prevY + this.height) <= (platform.y + 1) &&
+                            (this.y + this.height) >= platform.y) {
+
+                            this.y = platform.y - this.height;
+                            this.velocityY = 0;
+                            this.isOnGround = true;
+                            this.hitstunFrames = 0; // 着地したら行動不能を解除
+                            this.jumpsLeft = this.stats.type === 'red-white' ? 1 : 2;
+                            break;
+                        }
+                    }
+
+                    // === 3. APPLY FORCES & CHECK FOR X-AXIS COLLISIONS (WALLS) ===
+                    this.x += this.velocityX;
+                    for (const platform of platforms) {
+                        if (this.x + this.width > platform.x && this.x < platform.x + platform.width &&
+                            this.y + this.height > platform.y && this.y < platform.y + platform.height) {
+
+                            if (this.velocityX > 0) {
+                                this.x = platform.x - this.width;
+                                this.velocityX = 0;
+                            } else if (this.velocityX < 0) {
+                                this.x = platform.x + platform.width;
+                                this.velocityX = 0;
+                            }
+                        }
+                    }
+
+                    // === 4. UPDATE ATTACK BOX POSITION ===
+                    if (this.isAttacking && this.currentAttack) {
+                        if (this.currentAttack.type === 'stomp') {
+                            this.attackBox.x = this.x + (this.width - this.currentAttack.reach) / 2;
+                            this.attackBox.y = this.y + this.height;
+                        } else if (this.currentAttack.type === 'tackle') {
+                            this.attackBox.x = this.x - 5;
+                            this.attackBox.y = this.y - 5;
+                        }
+                    }
+                }
+
+
+
+                attack(type) {
+                    if (this.isAttacking || this.hitstunFrames > 0 || this.isCharging || this.inAttackLag) return;
+
+                    if (type === 'special') {
+                        this.inAttackLag = true;
+                        switch (this.stats.type) {
+                            case 'red':
+                                projectiles.push({
+                                    x: this.x + (this.lastDirection > 0 ? this.width : 0),
+                                    y: this.y + this.height / 2 - 4,
+                                    dir: this.lastDirection,
+                                    owner: this,
+                                    width: 8, height: 8,
+                                    damage: 5,
+                                    baseKnockback: 3,
+                                    knockbackScaling: 0.05
+                                });
+                                setTimeout(() => { this.inAttackLag = false; }, 300);
+                                break;
+                            case 'green':
+                                this.isDashing = true;
+                                this.velocityX = 18 * this.lastDirection;
+                                setTimeout(() => { this.isDashing = false; this.inAttackLag = false; }, 300);
+                                break;
+                            case 'blue':
+                                this.isAttacking = true;
+                                const repulseProps = { reach: 80, duration: 100, damage: 2, baseKnockback: 8, knockbackScaling: 0, color: 'rgba(52, 152, 219, 0.5)' };
+                                this.currentAttack = repulseProps;
+                                this.attackBox = { x: this.x - (repulseProps.reach - this.width) / 2, y: this.y - (repulseProps.reach - this.height) / 2, width: repulseProps.reach, height: repulseProps.reach, color: repulseProps.color };
+                                setTimeout(() => { this.isAttacking = false; this.currentAttack = null; this.inAttackLag = false; }, repulseProps.duration + 200);
+                                break;
+                            case 'yellow':
+                                this.isAttacking = true;
+                                if (!this.isOnGround) { this.velocityY = 5; }
+                                const stompProps = { type: 'stomp', reach: 60, duration: 250, damage: 11, baseKnockback: 6, knockbackScaling: 0.1, color: 'rgba(255, 165, 0, 0.6)' };
+                                this.currentAttack = stompProps;
+                                this.attackBox = { x: this.x + (this.width - stompProps.reach) / 2, y: this.y + this.height, width: stompProps.reach, height: 20, color: stompProps.color };
+                                setTimeout(() => { this.isAttacking = false; this.currentAttack = null; this.inAttackLag = false; }, stompProps.duration);
+                                break;
+                            case 'purple':
+                                this.x += 150 * this.lastDirection;
+                                setTimeout(() => { this.inAttackLag = false; }, 200);
+                                break;
+                            case 'gold':
+                                this.isAttacking = true;
+                                const pillarProps = { type: 'pillar', reach: 150, duration: 300, damage: 12, baseKnockback: 7, knockbackScaling: 0.1, color: 'rgba(255, 215, 0, 0.6)' };
+                                this.currentAttack = pillarProps;
+                                this.attackBox = { x: this.x + (this.width / 2) - 15, y: this.y - pillarProps.reach, width: 30, height: pillarProps.reach, color: pillarProps.color };
+                                setTimeout(() => { this.isAttacking = false; this.currentAttack = null; this.inAttackLag = false; }, pillarProps.duration + 100);
+                                break;
+                            case 'white':
+                                this.isAttacking = true;
+                                this.inAttackLag = true;
+                                this.attackStartTime = Date.now();
+                                const tornadoProps = { type: 'tornado', reachX: 60, reachY: 120, duration: 500, damage: 9, baseKnockback: 7.2, knockbackScaling: 0.096, color: 'rgba(220, 220, 255, 0.7)' };
+                                this.currentAttack = tornadoProps;
+                                this.attackBox = { x: this.x + (this.width / 2) - (tornadoProps.reachX / 2), y: this.y - tornadoProps.reachY + this.height, width: tornadoProps.reachX, height: tornadoProps.reachY, color: tornadoProps.color };
+                                setTimeout(() => { this.isAttacking = false; this.currentAttack = null; }, tornadoProps.duration);
+                                setTimeout(() => { this.inAttackLag = false; }, tornadoProps.duration + 100);
+                                break;
+                            case 'orange':
+                                this.inAttackLag = true;
+                                this.isCharging = true;
+                                setTimeout(() => {
+                                    this.isCharging = false;
+                                    if (this.hitstunFrames > 0) { this.inAttackLag = false; return; }
+                                    this.isAttacking = true;
+                                    const laserProps = { type: 'laser', reach: 600, duration: 200, damage: 15, baseKnockback: 6, knockbackScaling: 0.11, color: 'rgba(255, 165, 0, 0.8)' };
+                                    this.currentAttack = laserProps;
+                                    const laserY = this.y + this.height / 2 - 2.5;
+                                    this.attackBox = { x: this.lastDirection > 0 ? this.x + this.width : this.x - laserProps.reach, y: laserY, width: laserProps.reach, height: 5, color: laserProps.color };
+                                    setTimeout(() => {
+                                        this.isAttacking = false;
+                                        this.currentAttack = null;
+                                        setTimeout(() => { this.inAttackLag = false; }, 300);
+                                    }, laserProps.duration);
+                                }, 1800);
+                                break;
+                            case 'brown':
+                                this.isAttacking = true;
+                                this.inAttackLag = true;
+                                const waveProps = { type: 'earthwave', reach: 150, duration: 400, damage: 8, baseKnockback: 2.5, knockbackScaling: 0.06, color: 'rgba(139, 69, 19, 0.7)' };
+                                this.currentAttack = waveProps;
+                                const waveHeight = 25;
+                                const waveY = this.y + this.height - waveHeight;
+                                this.attackBox = { x: this.lastDirection > 0 ? this.x + this.width : this.x - waveProps.reach, y: waveY, width: waveProps.reach, height: waveHeight, color: waveProps.color };
+                                setTimeout(() => {
+                                    this.isAttacking = false;
+                                    this.currentAttack = null;
+                                }, waveProps.duration);
+                                setTimeout(() => { this.inAttackLag = false; }, waveProps.duration + 200);
+                                break;
+                            case 'indigo':
+                                this.isAttacking = true;
+                                this.inAttackLag = true;
+                                const gravityProps = { type: 'gravity', reach: 60, duration: 200, damage: 4, baseKnockback: 1, knockbackScaling: 0.05, color: 'rgba(75, 0, 130, 0.6)' };
+                                this.currentAttack = gravityProps;
+                                this.attackBox = { x: this.lastDirection > 0 ? this.x + this.width : this.x - gravityProps.reach, y: this.y, width: gravityProps.reach, height: this.height, color: gravityProps.color };
+                                setTimeout(() => {
+                                    this.isAttacking = false;
+                                    this.currentAttack = null;
+                                }, gravityProps.duration);
+                                setTimeout(() => { this.inAttackLag = false; }, gravityProps.duration + 300);
+                                break;
+                            case 'pink':
+                                this.inAttackLag = true;
+                                this.isCharging = true;
+                                // Charge duration
+                                setTimeout(() => {
+                                    this.isCharging = false;
+                                    if (this.hitstunFrames > 0) { this.inAttackLag = false; return; }
+
+                                    const projectileCount = 30;
+                                    const projectileSpeed = 4;
+                                    const centerX = this.x + this.width / 2;
+                                    const centerY = this.y + this.height / 2;
+
+                                    for (let i = 0; i < projectileCount; i++) {
+                                        const angle = (i / projectileCount) * Math.PI * 2;
+                                        projectiles.push({
+                                            x: centerX,
+                                            y: centerY,
+                                            velocityX: Math.cos(angle) * projectileSpeed,
+                                            velocityY: Math.sin(angle) * projectileSpeed,
+                                            owner: this,
+                                            width: 16, height: 16,
+                                            damage: 5, // Low damage per projectile
+                                            baseKnockback: 0.5,
+                                            knockbackScaling: 0.01
+                                        });
+                                    }
+                                    this.inAttackLag = true; // Prevent moving while projectiles are out
+                                    setTimeout(() => { this.inAttackLag = false; }, 500);
+
+                                }, 1000); // 1 second charge time
+                                break;
+                            case 'black':
+                                const existingBlackHole = blackHoles.find(bh => bh.owner === this);
+                                if (!existingBlackHole) {
+                                    blackHoles.push({
+                                        x: this.x + (this.lastDirection > 0 ? this.width : -60),
+                                        y: this.y + this.height / 2 - 30,
+                                        owner: this,
+                                        width: 60,
+                                        height: 60,
+                                        duration: 5000, // 5 seconds
+                                        createdAt: Date.now()
+                                    });
+                                }
+                                setTimeout(() => { this.inAttackLag = false; }, 300);
+                                break;
+                            case 'grey':
+                                if (this.isSizeChanging) {
+                                    this.inAttackLag = false;
+                                    return;
+                                }
+                                // this.jump(); // Removed to prevent any upward movement
+                                // this.velocityY = 0; // Removed as there's no jump to reset
+                                this.isSizeChanging = true;
+                                this.width = this.originalWidth * 3; // 3倍に変更
+                                this.height = this.originalHeight * 3; // 3倍に変更
+                                // Size change lasts for 4 seconds
+                                setTimeout(() => {
+                                    this.width = this.originalWidth;
+                                    this.height = this.originalHeight;
+                                    this.isSizeChanging = false;
+                                }, 4000); // 4秒に変更
+                                setTimeout(() => { this.inAttackLag = false; }, 300);
+                                break;
+                            case 'red-white':
+                                this.inAttackLag = true;
+
+                                const offset = 75; // Adjust this value as needed
+                                const createCross = (size, thickness, damage, knockback, duration, delay, speed = 0) => {
+                                    setTimeout(() => {
+                                        const centerX = this.x + this.width / 2 + (offset * this.lastDirection);
+                                        const centerY = this.y + this.height / 2;
+                                        const crossVelocityX = speed * this.lastDirection;
+
+                                        // Horizontal part
+                                        projectiles.push({
+                                            x: centerX - size / 2,
+                                            y: centerY - thickness / 2,
+                                            velocityX: crossVelocityX,
+                                            velocityY: 0,
+                                            owner: this,
+                                            width: size,
+                                            height: thickness,
+                                            damage: damage,
+                                            baseKnockback: knockback,
+                                            knockbackScaling: 0.07,
+                                            createdAt: Date.now(),
+                                            duration: duration,
+                                            isCrossPart: true // For special coloring
+                                        });
+                                        // Vertical part
+                                        projectiles.push({
+                                            x: centerX - thickness / 2,
+                                            y: centerY - size / 2,
+                                            velocityX: crossVelocityX,
+                                            velocityY: 0,
+                                            owner: this,
+                                            width: thickness,
+                                            height: size,
+                                            damage: damage,
+                                            baseKnockback: knockback,
+                                            knockbackScaling: 0.07,
+                                            createdAt: Date.now(),
+                                            duration: duration,
+                                            isCrossPart: true // For special coloring
+                                        });
+                                    }, delay);
+                                };
+
+                                // 5-hit combo
+                                createCross(80, 10, 4, 2, 200, 0, 0);      // Hit 1 (Stationary)
+                                createCross(100, 12, 4, 2, 200, 150, 0);     // Hit 2 (Stationary)
+                                createCross(120, 14, 4, 2, 200, 300, 0);     // Hit 3 (Stationary)
+                                createCross(140, 16, 5, 2.5, 300, 450, 4);  // Hit 4 (Moving)
+                                createCross(160, 18, 6, 3, 300, 600, 6);  // Hit 5 (Moving Faster)
+
+                                setTimeout(() => { this.inAttackLag = false; }, 1000);
+                                break;
+                        }
+                    } else if (type === 'smash') {
+                        if (!this.isOnGround) return;
+                        this.isCharging = true;
+
+                        // オレンジのスマッシュ溜め時間を個別に設定
+                        let chargeTime = SMASH_CHARGE_TIME;
+                        if (this.stats.type === 'orange') {
+                            chargeTime = 150; // 0.15秒
+                        }
+
+                        setTimeout(() => {
+                            this.isCharging = false; if (this.hitstunFrames > 0) return;
+                            this.isAttacking = true;
+                            let props = { reach: 70, duration: 400, damage: 17, baseKnockback: 5, knockbackScaling: 0.15, color: 'rgba(255, 0, 255, 0.5)' };
+                            if (this.stats.type === 'purple') {
+                                props.reach *= 1.5;
+                                props.damage -= 3;
+                            }
+                            this.currentAttack = props;
+
+                            if (this.stats.type === 'orange') {
+                                props.reach = this.width;
+                                props.baseKnockback = 0;
+                                props.knockbackScaling = 0;
+                                props.damage = 15;
+                                const boxX = this.lastDirection > 0 ? (this.x + this.width * 4) : (this.x - props.reach - this.width * 3);
+                                this.attackBox = { x: boxX, y: this.y, width: props.reach, height: props.reach, color: props.color };
+                            } else {
+                                this.attackBox = { x: this.lastDirection > 0 ? this.x + this.width : this.x - props.reach, y: this.y, width: props.reach, height: this.height, color: props.color };
+                            }
+                            setTimeout(() => {
+                                this.isAttacking = false; this.currentAttack = null; this.inAttackLag = true;
+                                setTimeout(() => { this.inAttackLag = false; }, this.stats.type === 'yellow' ? SMASH_LAG_TIME + 200 : SMASH_LAG_TIME);
+                            }, props.duration);
+                        }, chargeTime);
+                    } else if (type === 'special2') {
+                        if (this.stats.type === 'kohaku') {
+                            // Jump -> Dive -> Slash with Armor
+                            if (!this.isOnGround && this.jumpsLeft <= 0) return;
+
+                            this.inAttackLag = true;
+                            this.isSuperArmor = true; // Enable Armor
+                            this.velocityY = -13; // 1. Initial Jump
+                            this.isOnGround = false;
+
+                            // 2. Dive (Fast Fall) after reaching peak
+                            setTimeout(() => {
+                                this.velocityY = 25; // Sharp downward dive
+                            }, 200);
+
+                            // 3. Landing & Slash
+                            setTimeout(() => {
+                                this.velocityY = 0; // Stop vertical movement (simulate landing impact)
+                                this.velocityX = 0; // Stop horizontal movement
+
+                                this.isAttacking = true;
+                                const diveSlashProps = { reach: 80, duration: 200, damage: 15, baseKnockback: 7, knockbackScaling: 0.12, color: 'rgba(255, 69, 0, 0.9)' };
+                                this.currentAttack = diveSlashProps;
+                                this.attackBox = {
+                                    x: this.lastDirection > 0 ? this.x + this.width : this.x - diveSlashProps.reach,
+                                    y: this.y,
+                                    width: diveSlashProps.reach,
+                                    height: this.height,
+                                    color: diveSlashProps.color
+                                };
+
+                                setTimeout(() => {
+                                    this.isAttacking = false;
+                                    this.currentAttack = null;
+                                }, diveSlashProps.duration);
+                            }, 350); // Timing for "landing"
+
+                            // End lag and armor
+                            setTimeout(() => {
+                                this.inAttackLag = false;
+                                this.isSuperArmor = false;
+                            }, 600);
+
+                        } else if (this.stats.type === 'purple') {
+                            this.inAttackLag = true;
+                            // 1回目の攻撃
+                            this.isAttacking = true;
+                            let props1 = { reach: 60, duration: 50, damage: 5, baseKnockback: 2, knockbackScaling: 0.05, color: 'rgba(255, 0, 0, 0.6)' };
+                            this.currentAttack = props1;
+                            this.attackBox = { x: this.lastDirection > 0 ? this.x + this.width : this.x - props1.reach, y: this.y, width: props1.reach, height: this.height, color: props1.color };
+                            setTimeout(() => {
+                                this.isAttacking = false;
+                                this.currentAttack = null;
+                            }, props1.duration);
+
+                            // 2回目以降の攻撃
+                            for (let i = 0; i < 4; i++) {
+                                setTimeout(() => {
+                                    this.isAttacking = true;
+                                    let props2 = { reach: 60, duration: 50, damage: 3, baseKnockback: 2, knockbackScaling: 0.05, color: 'rgba(155, 89, 182, 0.6)' };
+                                    this.currentAttack = props2;
+                                    this.attackBox = { x: this.lastDirection > 0 ? this.x + this.width : this.x - props2.reach, y: this.y, width: props2.reach, height: this.height, color: props2.color };
+                                    setTimeout(() => {
+                                        this.isAttacking = false;
+                                        this.currentAttack = null;
+                                    }, props2.duration);
+                                }, 50 * (i + 1));
+                            }
+
+                            setTimeout(() => {
+                                this.inAttackLag = false;
+                            }, 50 * 5);
+
+                        } else if (this.stats.type === 'blue') {
+                            if (this.barrierUsed) return;
+                            this.isInvincible = true;
+                            this.barrierUsed = true;
+                            this.inAttackLag = true;
+                            setTimeout(() => { this.isInvincible = false; }, 5000); // 5秒間無敵
+                            setTimeout(() => { this.inAttackLag = false; }, 500); // 短い硬直
+                        } else if (this.stats.type === 'grey') {
+                            if (this.isSizeChanging) {
+                                this.inAttackLag = false;
+                                return;
+                            }
+                            // this.jump(); // Removed to prevent any upward movement
+                            // this.velocityY = 0; // Removed as there's no jump to reset
+                            this.isSizeChanging = true;
+                            this.width = this.originalWidth / 4;
+                            this.height = this.originalHeight / 4;
+                            // Size change lasts for 5 seconds
+                            setTimeout(() => {
+                                this.width = this.originalWidth;
+                                this.height = this.originalHeight;
+                                this.isSizeChanging = false;
+                            }, 5000);
+                            setTimeout(() => { this.inAttackLag = false; }, 300);
+                        } else if (this.stats.type === 'red-white') {
+                            if (this.inAttackLag) return;
+                            this.inAttackLag = true;
+                            // Triggering projectile attack, so no melee state needed
+
+                            const numSegments = 12;
+                            const segmentLength = 40;
+                            let startX = this.x + this.width / 2;
+                            let startY = this.y + this.height / 2;
+                            let angle = this.lastDirection > 0 ? 0 : Math.PI;
+
+                            for (let i = 0; i < numSegments; i++) {
+                                angle += (Math.random() - 0.5) * 0.52; // Approx +/- 15 degrees
+                                const endX = startX + Math.cos(angle) * segmentLength;
+                                const endY = startY + Math.sin(angle) * segmentLength;
+
+                                const steps = 8;
+                                for (let j = 0; j < steps; j++) {
+                                    const ratio = j / steps;
+                                    const px = startX + (endX - startX) * ratio;
+                                    const py = startY + (endY - startY) * ratio;
+
+                                    this.projectiles.push({
+                                        x: px - 3, y: py - 3,
+                                        velocityX: 0, velocityY: 0,
+                                        owner: this,
+                                        width: 6, height: 6,
+                                        damage: 1,
+                                        baseKnockback: 2,
+                                        knockbackScaling: 0.05,
+                                        duration: 400,
+                                        createdAt: Date.now(),
+                                        color: Math.random() > 0.5 ? '#FF0000' : '#FFFFFF',
+                                        isCrossPart: true
+                                    });
+                                }
+                                startX = endX;
+                                startY = endY;
+                            }
+
+                            setTimeout(() => {
+                                this.inAttackLag = false;
+                            }, 500);
+                        } else if (this.stats.type === 'yellow') {
+                            if (this.inAttackLag) return;
+                            this.inAttackLag = true;
+                            this.isAttacking = true;
+
+                            this.velocityY = -12;
+                            this.velocityX = 15 * this.lastDirection;
+                            this.isOnGround = false;
+
+                            const tackleProps = {
+                                type: 'tackle',
+                                reach: 0,
+                                duration: 500,
+                                damage: 12,
+                                baseKnockback: 8,
+                                knockbackScaling: 0.1,
+                                color: 'rgba(255, 215, 0, 0.8)'
+                            };
+                            this.currentAttack = tackleProps;
+                            this.attackBox = {
+                                x: this.x - 5,
+                                y: this.y - 5,
+                                width: this.width + 10,
+                                height: this.height + 10,
+                                color: tackleProps.color
+                            };
+
+                            setTimeout(() => {
+                                this.isAttacking = false;
+                                this.currentAttack = null;
+                                this.inAttackLag = false;
+                                this.velocityX *= 0.5; // Slow down
+                            }, tackleProps.duration);
+                        } else {
+                            // special2のチャージ開始はstartChargeメソッドで処理されるため、ここでは何もしない
+                            // 他のキャラクターには特殊な動作がない場合、すぐに硬直を解除
+                            if (this.stats.type !== 'red') {
+                                setTimeout(() => { this.inAttackLag = false; }, 100);
+                            }
+                        }
+                    } else if (type === 'normal') {
+                        if (this.stats.type === 'green') {
+                            projectiles.push({
+                                x: this.x + (this.lastDirection > 0 ? this.width : 0),
+                                y: this.y + this.height / 2 - 15,
+                                velocityX: 12 * this.lastDirection,
+                                velocityY: 0,
+                                owner: this,
+                                width: 20, height: 30, // Slash shape
+                                damage: 3,
+                                baseKnockback: 2,
+                                knockbackScaling: 0.02,
+                                color: '#50c878',
+                                duration: 180, // Approx 3 character widths (42.5 * 3 / 12px_per_frame * 16.6ms)
+                                createdAt: Date.now()
+                            });
+                            this.inAttackLag = true;
+                            // 0.01 second cooldown (10ms)
+                            setTimeout(() => {
+                                this.inAttackLag = false;
+                            }, 10);
+                            return;
+                        }
+
+                        this.isAttacking = true;
+                        let props = { reach: 50, duration: 150, damage: 7, baseKnockback: 3.5, knockbackScaling: 0.08, color: 'rgba(255, 255, 0, 0.5)' };
+                        if (this.stats.type === 'purple') {
+                            props.reach *= 1.5;
+                            props.damage -= 3;
+                        }
+                        if (this.stats.type === 'orange') {
+                            props.reach = 15; // 50 * 0.3
+                            props.damage = 10;
+                            props.baseKnockback = 7.0; // 3.5 * 2
+                            props.knockbackScaling = 0.16; // 0.08 * 2
+                        }
+                        this.currentAttack = props;
+                        this.attackBox = { x: this.lastDirection > 0 ? this.x + this.width : this.x - props.reach, y: this.y, width: props.reach, height: this.height, color: props.color };
+
+                        if (this.stats.type === 'kohaku') {
+                            props.reach = 50;
+                            props.duration = 200;
+                            props.damage = 9;
+                            props.baseKnockback = 7.0; // Strong upward force
+                            props.knockbackScaling = 0.1;
+                            props.type = 'upswing'; // Custom type for upward logic
+                            props.color = 'rgba(255, 153, 0, 0.6)';
+
+                            // Hitbox is taller to represent an upward swing
+                            this.attackBox = {
+                                x: this.lastDirection > 0 ? this.x + this.width : this.x - props.reach,
+                                y: this.y - 65, // Extended upwards (50 * 1.3)
+                                width: props.reach,
+                                height: this.height + 75, // Taller hitbox to cover the upward area
+                                color: props.color
+                            };
+                        }
+
+                        if (this.stats.type === 'black') {
+                            props.onHit = 'slow';
+                        }
+
+                        setTimeout(() => {
+                            this.isAttacking = false;
+                            this.currentAttack = null;
+                            this.inAttackLag = true;
+                            setTimeout(() => { this.inAttackLag = false; }, NORMAL_ATTACK_LAG_TIME);
+                        }, props.duration);
+                    }
+                }
+
+                respawn() {
+                    this.x = this.name === 'Player 1' ? 200 : 550;
+                    this.y = 100;
+                    this.damage = 0;
+                    if (this.stats.type === 'black') {
+                        this.hp = 120;
+                    }
+                    this.velocityX = 0;
+                    this.velocityY = 0;
+                    this.hitstunFrames = 0;
+                    this.isInvincible = true;
+                    if (this.hasBarrier) this.barrierUsed = false; // バリアー使用フラグをリセット
+                    setTimeout(() => { this.isInvincible = false; }, 2000);
+                }
+            }
+
+            // Find the widest platform to serve as the main ground
+            const mainPlatform = platforms.reduce((a, b) => (a.width > b.width ? a : b), platforms[0]);
+
+            // Create a dummy player to get the height for calculation
+            const tempPlayer = new Player(0, 0, '#fff', 'temp');
+
+            // Calculate starting positions
+            const p1StartX = mainPlatform.x + mainPlatform.width * 0.25 - tempPlayer.width / 2;
+            const p2StartX = mainPlatform.x + mainPlatform.width * 0.75 - tempPlayer.width / 2;
+            const startY = mainPlatform.y - tempPlayer.height;
+
+            // Helper function to create character image
+            function createCharacterImage(selection) {
+                const charInfo = characterData[selection];
+                if (charInfo && charInfo.imagePath) {
+                    const img = new Image();
+                    img.src = charInfo.imagePath;
+                    return img;
+                }
+                return null;
+            }
+
+            const p1Image = createCharacterImage(p1Selection);
+            const p2Image = createCharacterImage(p2Selection);
+
+            const player1 = new Player(p1StartX, startY, p1Selection, 'Player 1', projectiles, p1Image);
+            const player2 = new Player(p2StartX, startY, p2Selection, 'Player 2', projectiles, p2Image);
+
+            const players = [player1, player2];
+            const keys = {
+                a: { pressed: false }, d: { pressed: false }, w: { pressed: false }, s: { pressed: false }, ' ': { pressed: false }, e: { pressed: false }, q: { pressed: false },
+                arrowleft: { pressed: false }, arrowright: { pressed: false }, arrowup: { pressed: false }, arrowdown: { pressed: false }, enter: { pressed: false }, '0': { pressed: false }, '.': { pressed: false }
+            };
+
+            function gameLoop() {
+                // --- Player 1 Controls ---
+                let p1Speed = player1.stats.speed;
+                if (player1.isSlowed) {
+                    p1Speed /= 2;
+                }
+                if (player1.hitstunFrames > 0) {
+                    // ベクトル変更のロジック
+                    if (keys.a.pressed) { player1.velocityX -= DI_INFLUENCE; }
+                    else if (keys.d.pressed) { player1.velocityX += DI_INFLUENCE; }
+                } else if ((player1.isCharging && !player1.isChargingSpecial2) || player1.isDashing) {
+                    player1.velocityX = player1.isDashing ? player1.velocityX : 0;
+                } else if (!player1.inAttackLag) {
+                    // 通常の移動
+                    if (keys.a.pressed) { player1.velocityX = -p1Speed; player1.lastDirection = -1; }
+                    else if (keys.d.pressed) { player1.velocityX = p1Speed; player1.lastDirection = 1; }
+                    else if (player1.isOnGround) player1.velocityX = 0;
+                }
+
+                // --- Player 2 Controls ---
+                let p2Speed = player2.stats.speed;
+                if (player2.isSlowed) {
+                    p2Speed /= 2;
+                }
+                if (player2.hitstunFrames > 0) {
+                    // ベクトル変更のロジック
+                    if (keys.arrowleft.pressed) { player2.velocityX -= DI_INFLUENCE; }
+                    else if (keys.arrowright.pressed) { player2.velocityX += DI_INFLUENCE; }
+                } else if ((player2.isCharging && !player2.isChargingSpecial2) || player2.isDashing) {
+                    player2.velocityX = player2.isDashing ? player2.velocityX : 0;
+                } else if (!player2.inAttackLag) {
+                    // 通常の移動
+                    if (keys.arrowleft.pressed) { player2.velocityX = -p2Speed; player2.lastDirection = -1; }
+                    else if (keys.arrowright.pressed) { player2.velocityX = p2Speed; player2.lastDirection = 1; }
+                    else if (player2.isOnGround) player2.velocityX = 0;
+                }
+
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                platforms.forEach(p => {
+                    ctx.fillStyle = '#ddd';
+                    ctx.fillRect(p.x, p.y, p.width, p.height);
+                });
+
+                projectiles.forEach((p, i) => {
+                    // Timeout check for projectiles with a limited lifespan
+                    if (p.duration && (Date.now() - p.createdAt > p.duration)) {
+                        projectiles.splice(i, 1);
+                        return; // Continue to next projectile
+                    }
+
+                    if (p.dir) { // Old projectile type
+                        p.x += 8 * p.dir;
+                    } else { // New projectile type
+                        p.x += p.velocityX;
+                        p.y += p.velocityY;
+                    }
+
+                    // Change color for red-white's cross attack
+                    if (p.isCrossPart) {
+                        ctx.fillStyle = Math.floor(Date.now() / 100) % 2 === 0 ? '#FFFFFF' : '#FF0000';
+                    } else {
+                        ctx.fillStyle = p.owner.color;
+                    }
+
+                    const pWidth = p.width || 8;
+                    const pHeight = p.height || 8;
+                    ctx.fillRect(p.x, p.y, pWidth, pHeight);
+                    if (p.x < -p.width || p.x > canvas.width || p.y < -p.height || p.y > canvas.height) {
+                        projectiles.splice(i, 1);
+                    }
+                });
+
+                blackHoles.forEach((bh, i) => {
+                    const elapsed = Date.now() - bh.createdAt;
+                    if (elapsed > bh.duration) {
+                        blackHoles.splice(i, 1);
+                        return;
+                    }
+
+                    // Draw black hole
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                    ctx.beginPath();
+                    ctx.arc(bh.x + bh.width / 2, bh.y + bh.height / 2, bh.width / 2, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Pull opponent
+                    players.forEach(p => {
+                        if (p !== bh.owner) {
+                            const dx = (bh.x + bh.width / 2) - (p.x + p.width / 2);
+                            const dy = (bh.y + bh.height / 2) - (p.y + p.height / 2);
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+                            if (distance < 200) {
+                                const pullForce = 0.5;
+                                p.velocityX += (dx / distance) * pullForce;
+                                p.velocityY += (dy / distance) * pullForce;
+                            }
+                        }
+                    });
+                });
+
+                players.forEach(p => { p.update(); p.draw(); });
+                checkCollisions();
+                checkRingOut();
+                animationFrameId = requestAnimationFrame(gameLoop);
+            }
+
+            function applyDamage(target, damage, attacker) {
+                if (target.isInvincible) return;
+
+                if (target.stats.type === 'black') {
+                    target.hp -= damage;
+                    if (target.hp <= 0) {
+                        target.stocks--;
+                        if (target.stocks > 0) {
+                            target.respawn();
+                        } else {
+                            gameOver(attacker);
+                        }
+                    }
+                } else {
+                    target.damage += damage;
+                }
+            }
+
+            function checkCollisions() {
+                const [p1, p2] = players;
+                if (p1.isAttacking && p1.currentAttack && checkHit(p1.attackBox, p2)) { applyKnockback(p1, p2); p1.isAttacking = false; }
+                if (p2.isAttacking && p2.currentAttack && checkHit(p2.attackBox, p1)) { applyKnockback(p2, p1); p2.isAttacking = false; }
+
+                const dashAttackProps = { damage: 3, baseKnockback: 4, knockbackScaling: 0.09 };
+                if (p1.isDashing && checkHit(p1, p2)) {
+                    applyKnockback(p1, p2, dashAttackProps);
+                    p1.isDashing = false;
+                    p1.velocityX = 0;
+                }
+                if (p2.isDashing && checkHit(p2, p1)) {
+                    applyKnockback(p2, p1, dashAttackProps);
+                    p2.isDashing = false;
+                    p2.velocityX = 0;
+                }
+
+                projectiles.forEach((proj, i) => {
+                    players.forEach(p => {
+                        const pWidth = proj.width || 8;
+                        const pHeight = proj.height || 8;
+                        if (proj.owner !== p && checkHit({ x: proj.x, y: proj.y, width: pWidth, height: pHeight }, p)) {
+                            applyKnockback(proj.owner, p, proj); // Pass projectile as attack data
+                            projectiles.splice(i, 1);
+                        }
+                    });
+                });
+
+                blackHoles.forEach(bh => {
+                    players.forEach(p => {
+                        if (p !== bh.owner && !p.blackHoleCooldown && checkHit(bh, p)) {
+                            applyDamage(p, 5, bh.owner);
+                            p.blackHoleCooldown = true;
+                            setTimeout(() => {
+                                p.blackHoleCooldown = false;
+                            }, 1000); // 1 second cooldown
+                        }
+                    });
+                });
+            }
+            function checkHit(box, target) { return box.x < target.x + target.width && box.x + box.width > target.x && box.y < target.y + target.height && box.y + box.height > target.y; }
+            function applyKnockback(attacker, target, customAttack) {
+                if (target.isInvincible) return;
+                if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)(); playSound();
+                const attack = customAttack || attacker.currentAttack;
+                if (!attack) return;
+
+                if (attack.onHit === 'slow') {
+                    target.isSlowed = true;
+                    target.slowedTimer = 3000;
+                }
+
+                if (target.stats.type === 'black') {
+                    target.hp -= attack.damage;
+
+                    if (target.hp <= 0) {
+                        target.stocks--;
+                        if (target.stocks > 0) {
+                            target.respawn();
+                        } else {
+                            gameOver(attacker);
+                        }
+                    }
+                    return; // ノックバック処理をスキップ
+                }
+
+                target.damage += attack.damage;
+
+                // Super Armor check: Apply damage but NO knockback
+                if (target.isSuperArmor) {
+                    return;
+                }
+
+                const totalKnockback = (attack.baseKnockback + target.damage * attack.knockbackScaling) / target.stats.weight;
+
+                // ヒットストップの計算
+                const hitstunMultiplier = 1; // この値を調整してヒットストップの長さを変更
+                target.hitstunFrames = Math.floor(totalKnockback * hitstunMultiplier);
+
+                let knockbackX = totalKnockback * 1.0 * (target.x + target.width / 2 > attacker.x + (attacker.width || 0) / 2 ? 1 : -1);
+                let knockbackY = -totalKnockback * 1.0;
+
+                if (attack.type === 'stomp') {
+                    knockbackY = -totalKnockback * 0.6;
+                }
+                if (attack.type === 'pillar') {
+                    knockbackX = 0;
+                    knockbackY = -totalKnockback * 1.5;
+                }
+                if (attack.type === 'tornado') {
+                    knockbackX = (attacker.x + attacker.width / 2 - target.x) * 0.1;
+                    knockbackY = -totalKnockback * 1.7;
+                }
+
+                if (attack.type === 'upswing') {
+                    knockbackX = totalKnockback * 0.2 * (target.x + target.width / 2 > attacker.x + (attacker.width || 0) / 2 ? 1 : -1);
+                    knockbackY = -totalKnockback * 1.5;
+                }
+
+                target.velocityX = knockbackX;
+                target.velocityY = knockbackY;
+
+                if (attack.type === 'gravity') {
+                    target.velocityY += 15; // Apply a strong downward force
+                }
+            }
+
+            function checkRingOut() {
+                players.forEach((player, index) => {
+                    if (player.x < -player.width - 50 || player.x > canvas.width + 50 || player.y > canvas.height + 100) {
+                        player.stocks--;
+                        if (player.stocks <= 0) {
+                            gameOver(players[index === 0 ? 1 : 0]);
+                        } else {
+                            player.respawn();
+                        }
+                    }
+                });
+            }
+
+            function gameOver(winner) {
+                if (!gameOverOverlay || !winnerText) return;
+                const loser = players.find(p => p !== winner);
+                if (loser && loser.stocks > 0) {
+                    console.error("gameOverが不正に呼び出されました。敗者のストックが残っています:", loser);
+                    return;
+                }
+
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                    animationFrameId = null;
+                }
+                winnerText.textContent = `${winner.name} WINS!`;
+                gameOverOverlay.classList.remove('hidden');
+
+                setTimeout(resetToCharSelect, 4000);
+            }
+
+            keydownHandler = (event) => {
+                const key = event.key.toLowerCase();
+                if (keys[key] === undefined) return;
+
+                if (['w', ' ', 's', 'e', 'q', 'arrowup', 'enter', 'arrowdown', '0', '.'].includes(key) && keys[key].pressed) return;
+                keys[key].pressed = true;
+                switch (key) {
+                    case 'w': player1.jump(); break;
+                    case ' ': player1.attack('normal'); break;
+                    case 's': player1.attack('smash'); break;
+                    case 'e':
+                        if (player1.stats.type === 'kohaku') {
+                            player1.startCharge('special');
+                        } else {
+                            player1.attack('special');
+                        }
+                        break;
+                    case 'q':
+                        if (player1.stats.type === 'blue' || player1.stats.type === 'purple' || player1.stats.type === 'grey' || player1.stats.type === 'kohaku' || player1.stats.type === 'red-white' || player1.stats.type === 'yellow') {
+                            player1.attack('special2');
+                        } else {
+                            player1.startCharge('special2');
+                        }
+                        break;
+                    case 'arrowup': player2.jump(); break;
+                    case 'enter': player2.attack('normal'); break;
+                    case 'arrowdown': player2.attack('smash'); break;
+                    case '0':
+                        if (player2.stats.type === 'kohaku') {
+                            player2.startCharge('special');
+                        } else {
+                            player2.attack('special');
+                        }
+                        break;
+                    case '.':
+                        if (player2.stats.type === 'blue' || player2.stats.type === 'purple' || player2.stats.type === 'grey' || player2.stats.type === 'kohaku' || player2.stats.type === 'red-white' || player2.stats.type === 'yellow') {
+                            player2.attack('special2');
+                        } else {
+                            player2.startCharge('special2');
+                        }
+                        break;
+                }
+            };
+            keyupHandler = (event) => {
+                const key = event.key.toLowerCase();
+                if (keys[key] !== undefined) {
+                    keys[key].pressed = false;
+                    // チャージビームのリリース処理
+                    if (key === 'q') {
+                        player1.endCharge('special2');
+                    } else if (key === 'e') {
+                        player1.endCharge('special');
+                    } else if (key === '.') {
+                        player2.endCharge('special2');
+                    } else if (key === '0') {
+                        player2.endCharge('special');
+                    }
+                }
+            };
+            window.addEventListener('keydown', keydownHandler);
+            window.addEventListener('keyup', keyupHandler);
+            gameLoop();
+        }
+
+    </script>
+</body>
+
+</html>
