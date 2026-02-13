@@ -593,7 +593,8 @@
                     if (this.stats.type === 'blue') this.hasBarrier = true;
                     this.image = image;
                     this.attackImage = null; // 通常攻撃用画像 (boos1)
-                    this.specialImage = null; // 必殺技用画像 (boos2)
+                    this.specialImage = null; // 必殺技の飛び道具用画像 (boos2 copy)
+                    this.specialBodyImage = null; // 必殺技中のキャラクター本体用画像 (boos2)
 
                     this.isSlowed = false;
                     this.slowedTimer = 0;
@@ -827,8 +828,8 @@
                         if (this.stats.type === 'bigboss' && this.isAttacking && this.currentAttack) {
                             if (this.currentAttack.type === 'sword-swing' && this.attackImage) {
                                 currentImg = this.attackImage;
-                            } else if (this.currentAttack.type === 'laser' && this.specialImage) {
-                                currentImg = this.specialImage;
+                            } else if (this.currentAttack.type === 'laser' && this.specialBodyImage) {
+                                currentImg = this.specialBodyImage; // 必殺技中はboos2.pngを表示
                             }
                         }
 
@@ -941,19 +942,11 @@
                             ctx.stroke();
 
                             ctx.restore();
-                        } else if (this.currentAttack && this.currentAttack.type === 'laser' && this.stats.type === 'bigboss' && this.specialImage) {
-                            // ビッグボスのレーザー攻撃を画像で描画
+                        } else if (this.currentAttack && this.currentAttack.type === 'laser' && this.stats.type === 'bigboss' && this.specialBodyImage) {
+                            // ビッグボスのレーザー攻撃を本体と同じサイズで画像表示
                             ctx.save();
-                            const imgWidth = this.attackBox.width;
-                            const imgHeight = this.attackBox.height;
-
-                            // 画像を反転させる必要がある場合
-                            if (this.lastDirection < 0) {
-                                ctx.scale(-1, 1);
-                                ctx.drawImage(this.specialImage, -this.attackBox.x - imgWidth, this.attackBox.y, imgWidth, imgHeight);
-                            } else {
-                                ctx.drawImage(this.specialImage, this.attackBox.x, this.attackBox.y, imgWidth, imgHeight);
-                            }
+                            // 本体と同じサイズで描画（反転なし、本体の画像がすでに反転されている）
+                            ctx.drawImage(this.specialBodyImage, this.attackBox.x, this.attackBox.y, this.attackBox.width, this.attackBox.height);
                             ctx.restore();
                         } else {
                             // 通常の攻撃ボックス描画
@@ -1260,14 +1253,26 @@
                                     this.isCharging = false;
                                     if (this.hitstunFrames > 0) { this.inAttackLag = false; return; }
                                     this.isAttacking = true;
-                                    // ビッグボスのサイズに合わせた必殺技（高さ127.5に合わせる）
-                                    const bossLaser = { type: 'laser', reach: 300, duration: 400, damage: 18, baseKnockback: 8, knockbackScaling: 0.15, color: 'rgba(139, 0, 0, 0.9)' };
+
+                                    // 本体と同じサイズと位置を使用
+                                    const imgWidth = this.width;
+                                    const imgHeight = this.height;
+
+                                    const bossLaser = {
+                                        type: 'laser',
+                                        reach: imgWidth,
+                                        duration: 400,
+                                        damage: 14.4, // 18から20%減
+                                        baseKnockback: 8,
+                                        knockbackScaling: 0.15,
+                                        color: 'rgba(139, 0, 0, 0)' // 透明にして画像のみ表示
+                                    };
                                     this.currentAttack = bossLaser;
                                     this.attackBox = {
-                                        x: this.lastDirection > 0 ? this.x + this.width : this.x - bossLaser.reach,
-                                        y: this.y,
-                                        width: bossLaser.reach,
-                                        height: this.height, // ビッグボスの高さ（127.5）に合わせる
+                                        x: this.x, // 本体と同じX位置
+                                        y: this.y + 24, // 本体より24ピクセル下
+                                        width: imgWidth, // 本体と同じ幅
+                                        height: imgHeight, // 本体と同じ高さ
                                         color: bossLaser.color
                                     };
                                     setTimeout(() => {
@@ -1298,8 +1303,8 @@
                                 props.damage -= 3;
                             }
                             if (this.stats.type === 'bigboss') {
-                                props.reach = 140;
-                                props.damage = 25;
+                                props.reach = 80; // 140から80に縮小
+                                props.damage = 20; // 25から20%減
                                 props.baseKnockback = 10;
                                 props.knockbackScaling = 0.2;
                                 props.color = 'rgba(128, 0, 0, 0.8)';
@@ -1313,6 +1318,15 @@
                                 props.damage = 15;
                                 const boxX = this.lastDirection > 0 ? (this.x + this.width * 4) : (this.x - props.reach - this.width * 3);
                                 this.attackBox = { x: boxX, y: this.y, width: props.reach, height: props.reach, color: props.color };
+                            } else if (this.stats.type === 'bigboss') {
+                                // ビッグボスのスマッシュ攻撃を本体に近づける
+                                this.attackBox = {
+                                    x: this.lastDirection > 0 ? this.x + this.width - 30 : this.x - props.reach + 30,
+                                    y: this.y,
+                                    width: props.reach,
+                                    height: this.height,
+                                    color: props.color
+                                };
                             } else {
                                 this.attackBox = { x: this.lastDirection > 0 ? this.x + this.width : this.x - props.reach, y: this.y, width: props.reach, height: this.height, color: props.color };
                             }
@@ -1500,7 +1514,7 @@
                             this.isAttacking = true;
 
                             // Giant Explosion
-                            const explosionProps = { type: 'explosion', reach: 0, duration: 600, damage: 20, baseKnockback: 10, knockbackScaling: 0.15, color: 'rgba(255, 0, 0, 0.5)' };
+                            const explosionProps = { type: 'explosion', reach: 0, duration: 600, damage: 16, baseKnockback: 10, knockbackScaling: 0.15, color: 'rgba(255, 0, 0, 0.5)' }; // 20から20%減
                             this.currentAttack = explosionProps;
                             const range = 100;
                             this.attackBox = {
@@ -1571,7 +1585,7 @@
                                 // Sword Swing properties
                                 props.type = 'sword-swing';
                                 props.reach = 64;
-                                props.damage = 18;
+                                props.damage = 14.4; // 18から20%減
                                 props.baseKnockback = 8;
                                 props.knockbackScaling = 0.12;
                                 props.color = 'rgba(192, 192, 192, 0)'; // Invisible hitbox, drawn by arc
@@ -1670,13 +1684,17 @@
             const p2AttackImage = p2Selection === '#800000' ? (function () { const img = new Image(); img.src = 'キャラクター/boos1.png'; return img; })() : null;
             const p1SpecialImage = p1Selection === '#800000' ? (function () { const img = new Image(); img.src = 'キャラクター/boos2 copy.png'; return img; })() : null;
             const p2SpecialImage = p2Selection === '#800000' ? (function () { const img = new Image(); img.src = 'キャラクター/boos2 copy.png'; return img; })() : null;
+            const p1SpecialBodyImage = p1Selection === '#800000' ? (function () { const img = new Image(); img.src = 'キャラクター/boos2.png'; return img; })() : null;
+            const p2SpecialBodyImage = p2Selection === '#800000' ? (function () { const img = new Image(); img.src = 'キャラクター/boos2.png'; return img; })() : null;
 
             const player1 = new Player(0, 0, p1Selection, 'Player 1', projectiles, p1Image);
             if (p1AttackImage) player1.attackImage = p1AttackImage;
             if (p1SpecialImage) player1.specialImage = p1SpecialImage;
+            if (p1SpecialBodyImage) player1.specialBodyImage = p1SpecialBodyImage;
             const player2 = new Player(0, 0, p2Selection, 'Player 2', projectiles, p2Image);
             if (p2AttackImage) player2.attackImage = p2AttackImage;
             if (p2SpecialImage) player2.specialImage = p2SpecialImage;
+            if (p2SpecialBodyImage) player2.specialBodyImage = p2SpecialBodyImage;
 
             // Position players on the main platform
             player1.x = mainPlatform.x + mainPlatform.width * 0.25 - player1.width / 2;
@@ -1893,10 +1911,23 @@
                             gameOver(attacker);
                         }
                     }
+
+                    // ビッグボスの攻撃を受けたら0.5秒間無敵
+                    if (attacker.stats.type === 'bigboss') {
+                        target.isInvincible = true;
+                        setTimeout(() => { target.isInvincible = false; }, 500);
+                    }
+
                     return; // ノックバック処理をスキップ
                 }
 
                 target.damage += attack.damage;
+
+                // ビッグボスの攻撃を受けたら0.5秒間無敵
+                if (attacker.stats.type === 'bigboss') {
+                    target.isInvincible = true;
+                    setTimeout(() => { target.isInvincible = false; }, 500);
+                }
 
                 // Super Armor check: Apply damage but NO knockback
                 if (target.isSuperArmor) {
