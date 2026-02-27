@@ -1,0 +1,188 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #1a1a2e;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    color: white;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.screen {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.hidden {
+    display: none;
+}
+
+h1,
+h2 {
+    color: #e0e0e0;
+    text-shadow: 2px 2px 4px #000;
+}
+
+/* Character & Stage Select Styles */
+.select-container {
+    display: flex;
+    justify-content: center;
+    gap: 50px;
+    margin: 30px 0;
+}
+
+.player-select {
+    border: 2px solid #fff;
+    padding: 20px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    width: 300px;
+}
+
+.char-options {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.char-portrait {
+    width: 70px;
+    height: 70px;
+    border: 3px solid #555;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin: 0 auto;
+}
+
+.char-portrait:hover {
+    border-color: #fff;
+    transform: scale(1.1);
+}
+
+.char-portrait.selected {
+    border-color: #ffc107;
+    box-shadow: 0 0 15px #ffc107;
+}
+
+.char-portrait.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+    border-color: #f44336;
+}
+
+.char-description {
+    margin-top: 15px;
+    height: 40px;
+    font-size: 0.9em;
+}
+
+.ready-btn,
+#start-game-btn,
+#fight-btn {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 1.2em;
+    cursor: pointer;
+    border-radius: 5px;
+    border: none;
+    background-color: #e94560;
+    color: white;
+    transition: background-color 0.2s;
+}
+
+.ready-btn.ready {
+    background-color: #50c878;
+}
+
+#start-game-btn:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+}
+
+#stage-select-screen {
+    text-align: center;
+}
+
+.stage-preview-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+}
+
+.stage-preview {
+    width: 320px;
+    height: 200px;
+    background-color: #0f3460;
+    border: 3px solid #fff;
+    border-radius: 5px;
+    position: relative;
+}
+
+.stage-nav-btn {
+    font-size: 3em;
+    cursor: pointer;
+    user-select: none;
+}
+
+/* Game Screen Styles */
+canvas {
+    background-color: #0f3460;
+    border: 3px solid #e94560;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(233, 69, 96, 0.5);
+}
+
+.controls-container {
+    margin-top: 20px;
+    display: flex;
+    gap: 40px;
+}
+
+.controls {
+    padding: 15px;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    text-align: left;
+}
+
+.controls h3 {
+    margin-top: 0;
+    text-align: center;
+}
+
+.controls p {
+    margin: 5px 0;
+    font-size: 1em;
+}
+
+#game-over-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+}
+
+#winner-text {
+    font-size: 4.5em;
+    color: #ffc107;
+    text-shadow: 3px 3px 5px black;
+    margin-top: 0;
+}
